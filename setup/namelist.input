@@ -1,0 +1,64 @@
+! real.exe only (no wrf.exe run): makes wrfinput_d01..d03 and wrfbdy_d01 for ERF.
+! Physics options here only decide which fields real.exe writes: Morrison (10) keeps QCLOUD/QICE/
+! QRAIN/QSNOW/QGRAUP, Noah-MP (4) its land fields. have_bcs_moist puts moisture into wrfbdy.
+&time_control
+ start_year = __Y0__, __Y0__, __Y0__,
+ start_month = __M0__, __M0__, __M0__,
+ start_day = __D0__, __D0__, __D0__,
+ start_hour = __H0__, __H0__, __H0__,
+ end_year = __Y1__, __Y0__, __Y0__,
+ end_month = __M1__, __M0__, __M0__,
+ end_day = __D1__, __D0__, __D0__,
+ end_hour = __H1__, __H0__, __H0__,
+ interval_seconds = 3600,
+ input_from_file = .true., .true., .true.,
+ history_interval = 60, 60, 60,
+ frames_per_outfile = 1, 1, 1,
+ io_form_history = 2, io_form_restart = 2, io_form_input = 2, io_form_boundary = 2,
+/
+&domains
+ time_step = 5,
+ max_dom = 3,
+ e_we = 124, 129, 241,
+ e_sn = 124, 137, 281,
+ e_vert = 61, 61, 61,
+ p_top_requested = 5000,
+ num_metgrid_levels = 51,
+ num_metgrid_soil_levels = 9,
+ dx = 1000, 250, 50,
+ dy = 1000, 250, 50,
+ grid_id = 1, 2, 3,
+ parent_id = 0, 1, 2,
+ i_parent_start = 1, 51, 41,
+ j_parent_start = 1, 47, 49,
+ parent_grid_ratio = 1, 4, 5,
+ parent_time_step_ratio = 1, 4, 5,
+ feedback = 0,
+ use_surface = .true.,
+ lagrange_order = 2,
+ interp_type = 2,
+ use_levels_below_ground = .true.,
+ force_sfc_in_vinterp = 1,
+/
+&physics
+ mp_physics = 10, 10, 10,
+ sf_surface_physics = 4, 4, 4,
+ sf_sfclay_physics = 1, 1, 1,
+ bl_pbl_physics = 1, 1, 0,
+ ra_lw_physics = 4, 4, 4,
+ ra_sw_physics = 4, 4, 4,
+ num_land_cat = 21,
+ num_soil_layers = 4,
+/
+&dynamics
+ hybrid_opt = 0,              ! plain terrain-following eta (what ERF expects from PH/PHB)
+/
+&bdy_control
+ spec_bdy_width = 5,
+ specified = .true., .false., .false.,
+ nested = .false., .true., .true.,
+ have_bcs_moist = .true.,
+ have_bcs_scalar = .false.,
+/
+&namelist_quilt
+/

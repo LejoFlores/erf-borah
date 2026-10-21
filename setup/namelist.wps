@@ -1,0 +1,40 @@
+! WPS for ERF at Dry Creek, matched to the SCHNAPS 50 m case (schnaps-borah setup/drycreek/drycreek_50m_setup.yml).
+! d01 = SCHNAPS d01 (1 km, centred 43.7 N 116.2 W). SCHNAPS uses an oblique stereographic grid, which WPS
+! can't make, so this is Lambert with true latitude 43.7 at the same centre (differences < 0.1% over d01).
+! d02 (250 m) and d03 (50 m) cover the SCHNAPS d02/d03 footprints, snapped to whole parent cells and to
+! sizes ERF's AMR accepts (multiples of 8 cells); they are a little larger than SCHNAPS's.
+! __START__, __END__, __GEOG__ are filled in by run/wps_real.sh.
+&share
+ wrf_core = 'ARW',
+ max_dom = 3,
+ start_date = '__START__', '__START__', '__START__',
+ end_date   = '__END__',   '__START__', '__START__',
+ interval_seconds = 3600,
+ io_form_geogrid = 2,
+/
+&geogrid
+ parent_id         =   1,   1,   2,
+ parent_grid_ratio =   1,   4,   5,
+ i_parent_start    =   1,  51,  41,
+ j_parent_start    =   1,  47,  49,
+ e_we              = 124, 129, 241,
+ e_sn              = 124, 137, 281,
+ geog_data_res     = '__GEOGRES1__', '__GEOGRES2__', '__GEOGRES3__',
+ dx = 1000,
+ dy = 1000,
+ map_proj  = 'lambert',
+ ref_lat   =  43.7,
+ ref_lon   = -116.2,
+ truelat1  =  43.7,
+ truelat2  =  43.7,
+ stand_lon = -116.2,
+ geog_data_path = '__GEOG__',
+/
+&ungrib
+ out_format = 'WPS',
+ prefix = 'HRRR',
+/
+&metgrid
+ fg_name = 'HRRR',
+ io_form_metgrid = 2,
+/
