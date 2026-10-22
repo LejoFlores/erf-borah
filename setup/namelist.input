@@ -52,6 +52,8 @@
 /
 &dynamics
  hybrid_opt = 0,              ! plain terrain-following eta (what ERF expects from PH/PHB)
+ diff_opt = 2, 2, 2,          ! required by real.exe 4.7.1 (module_check_a_mundo); only wrf.exe uses them,
+ km_opt   = 4, 4, 2,          ! so ERF is unaffected. 2D Smagorinsky on d01/d02, 3D TKE on the 50 m LES nest
 /
 &bdy_control
  spec_bdy_width = 5,
