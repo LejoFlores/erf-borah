@@ -18,5 +18,11 @@ cd $ERF_SRC
 if [ ! -d netcdf-fortran-$NETCDF_F_VER ]; then
   curl -fsSL https://github.com/Unidata/netcdf-fortran/archive/refs/tags/v$NETCDF_F_VER.tar.gz | tar xz
 fi
+# CMake from PyPI (manylinux2014 wheel, runs on the compute nodes' older glibc)
+if [ ! -x $ERF_ROOT/cmake-venv/bin/cmake ]; then
+  python3 -m venv $ERF_ROOT/cmake-venv
+  $ERF_ROOT/cmake-venv/bin/pip install -q "cmake==$CMAKE_VER"
+fi
+echo "CMake: $($ERF_ROOT/cmake-venv/bin/cmake --version | head -1)"
 echo "Sources in $ERF_SRC (ERF $(cd ERF && git rev-parse --short HEAD))."
 echo "Next: sbatch $HERE/build_cpu.slurm   and/or   sbatch $HERE/build_gpu.slurm"

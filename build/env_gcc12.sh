@@ -16,3 +16,5 @@ export PKG_CONFIG_PATH=$ERF_DEPS/lib/pkgconfig:$NCC/lib/pkgconfig:$NCC/lib64/pkg
 export LD_LIBRARY_PATH=$ERF_DEPS/lib:$NCC/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 export PATH=$ERF_DEPS/bin:$PATH
 export CC=mpicc CXX=mpicxx FC=mpifort
+# Newer CMake from fetch_sources.sh (AMReX needs CUDA C++20, unknown to Borah's CMake 3.25)
+if [ -x $ERF_ROOT/cmake-venv/bin/cmake ]; then export PATH=$ERF_ROOT/cmake-venv/bin:$PATH; fi
