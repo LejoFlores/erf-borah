@@ -14,14 +14,21 @@ if [ ! -f "$(nc-config --includedir)/netcdf_par.h" ]; then
   exit 1
 fi
 
-# netcdf-fortran (once, shared by both builds)
-if [ ! -f $ERF_DEPS/lib/libnetcdff.so ]; then
-  cd $ERF_SRC/netcdf-fortran-$NETCDF_F_VER
-  rm -rf build && mkdir build && cd build
-  cmake .. -DCMAKE_INSTALL_PREFIX=$ERF_DEPS -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=OFF \
-           -DCMAKE_C_COMPILER=mpicc -DCMAKE_Fortran_COMPILER=mpifort
-  make -j $NP && make install
-fi
+# netcdf-fortran (once, shared by both builds). The CPU and GPU jobs may run at the same time,
+# so the first one builds it under a lock, in its own folder, and the other waits and reuses it.
+mkdir -p $ERF_DEPS
+(
+  flock 9
+  if [ ! -f $ERF_DEPS/lib/libnetcdff.so ]; then
+    NFB=$ERF_SRC/netcdf-fortran-build-${SLURM_JOB_ID:-$$}
+    rm -rf $NFB && mkdir -p $NFB && cd $NFB
+    cmake $ERF_SRC/netcdf-fortran-$NETCDF_F_VER -DCMAKE_INSTALL_PREFIX=$ERF_DEPS \
+          -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=OFF \
+          -DCMAKE_C_COMPILER=mpicc -DCMAKE_Fortran_COMPILER=mpifort
+    make -j $NP && make install
+    cd $ERF_SRC && rm -rf $NFB
+  fi
+) 9>$ERF_DEPS/.netcdf-fortran.lock
 
 BUILD=$ERF_ROOT/build-$TARGET
 INSTALL=$ERF_ROOT/install-$TARGET
