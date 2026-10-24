@@ -16,6 +16,8 @@ yhi.type = "Outflow"
 zlo.type = "surface_layer"
 zhi.type = "SlipWall"
 erf.most.average_policy = 1
+erf.most.zref = 10.0                # YSU needs the surface layer at exactly 10 m (WRF's 10 m wind)
+erf.most.use_interpolation = true   # without it, zref snaps to the first cell centre (~17 m here)
 
 # ---- Nests as static refinement (one-way, like the SCHNAPS nests) -------------------
 amr.max_level      = 2
