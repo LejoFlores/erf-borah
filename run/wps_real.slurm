@@ -32,6 +32,8 @@ findexe() { local f; f=$(find -L $1 -maxdepth $2 -name $3 -type f | head -1); [ 
 GEOGRID=$(findexe $WPS_DIR 2 geogrid.exe); UNGRIB=${UNGRIB_EXE:-$(findexe $WPS_DIR 2 ungrib.exe)}   # Borah's module ungrib lacks libjasper.so.6/libpng15; override with your own
 METGRID=$(findexe $WPS_DIR 2 metgrid.exe); LINKGRIB=$(findexe $WPS_DIR 2 link_grib.csh)
 REALEXE=$(findexe $WRF_DIR 3 real.exe)
+# A serial WPS build launched with mpirun runs N copies that all write the same file and corrupt it
+par() { local n=$1; shift; if ldd $1 | grep -q libmpi; then mpirun -np $n "$@"; else "$@"; fi; }
 echo "geogrid: $GEOGRID  ungrib: $UNGRIB  metgrid: $METGRID  real.exe: $REALEXE"
 
 fill() {  # fill() template out: substitute dates and paths
@@ -51,14 +53,14 @@ ln -sf $WPS_DIR/geogrid/GEOGRID.TBL.ARW geogrid/GEOGRID.TBL 2>/dev/null || ln -s
 [ -n "${GEOGRID_TBL:-}" ] && ln -sf $GEOGRID_TBL geogrid/GEOGRID.TBL     # custom table with schnaps_topo
 ln -sf $WPS_DIR/metgrid/METGRID.TBL.ARW metgrid/METGRID.TBL 2>/dev/null || ln -sf $WPS_DIR/metgrid/METGRID.TBL metgrid/
 ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.raphrrr Vtable
-[ -f geo_em.d03.nc ] || mpirun -np 4 $GEOGRID
-if [ -n "${REAL_ONLY:-}" ] && ls met_em.d03.* >/dev/null 2>&1; then
+ncdump -k geo_em.d03.nc >/dev/null 2>&1 || par 4 $GEOGRID
+if [ -n "${REAL_ONLY:-}" ] && ncdump -k met_em.d03.${END}:00:00.nc >/dev/null 2>&1; then
   echo "REAL_ONLY: reusing the existing met_em files"
 else
   rm -f GRIBFILE.* HRRR:*
   $LINKGRIB $CASE/hrrr/hrrr.*.grib2
   $UNGRIB
-  mpirun -np ${SLURM_NTASKS:-16} $METGRID
+  par ${SLURM_NTASKS:-16} $METGRID
 fi
 ls met_em.d0* | head -3
 
