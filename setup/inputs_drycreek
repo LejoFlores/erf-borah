@@ -46,6 +46,8 @@ erf.bdy_moist_nudge_type = 3             # rain, snow and graupel do not (ERF li
 erf.bdy_nudge_factor     = 10.0
 erf.terrain_type      = StaticFittedMesh
 erf.terrain_smoothing = 1
+erf.amr_terrain_refinement = transform   # nests keep their own wrfinput_d02/d03 terrain, blended into the
+                                         # mesh interpolated from the parent (required with smoothing)
 
 # ---- Time step ----------------------------------------------------------------------------
 erf.fixed_dt     = 5.0                    # 1 km
