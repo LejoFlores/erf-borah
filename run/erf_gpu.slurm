@@ -26,4 +26,7 @@ cp $ERF_ROOT/data/NoahmpTable.TBL $ERF_ROOT/data/rrtmgp-*.nc .
 ulimit -s unlimited          # Noah-MP's Fortran driver, as for CLM in ParFlow
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv || echo "nvidia-smi not permitted here; carrying on"   # informational only
 echo "exe: $EXE"
-srun $EXE inputs amrex.the_arena_init_size=0 2>&1 | tee erf-$SLURM_JOB_ID.out | grep -E "STEP|Writing|error|Error" | tail -40
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}  $(ls /dev/nvidia[0-9]* 2>/dev/null | tr '\n' ' ')"
+# mpirun, not srun: an srun step on Borah doesn't see the job's GPU (CUDA error 100, "no CUDA-capable
+# device"), and Borah's OpenMPI has no Slurm PMI anyway. The SCHNAPS GPU jobs launch the same way.
+mpirun -np ${SLURM_NTASKS:-1} --bind-to none $EXE inputs amrex.the_arena_init_size=0 2>&1 | tee erf-$SLURM_JOB_ID.out | grep -E "STEP|Writing|error|Error" | tail -40
