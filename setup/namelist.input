@@ -52,6 +52,8 @@
 /
 &dynamics
  hybrid_opt = 0,              ! plain terrain-following eta (what ERF expects from PH/PHB)
+ diff_opt = 1, 1, 1,          ! WRF >= 4.5 real.exe aborts unless diff_opt and km_opt are set;
+ km_opt = 4, 4, 4,            ! neither changes wrfinput/wrfbdy
 /
 &bdy_control
  spec_bdy_width = 5,
