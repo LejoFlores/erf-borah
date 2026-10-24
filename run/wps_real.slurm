@@ -23,9 +23,12 @@ if [ -z "${WPS_DIR:-}" ]; then module load wps/4.6.0/openmpi/4.1.3/intel/2021.6.
 if [ -z "${WRF_DIR:-}" ]; then module load wrf/4.7.1/openmpi/4.1.3/intel/2021.6.0; fi
 : ${WPS_DIR:?WPS module did not set WPS_DIR; set it to your WPS directory}
 : ${WRF_DIR:?set WRF_DIR to your WRF directory}
-WPSBIN=$(dirname $(find -L $WPS_DIR -maxdepth 2 -name geogrid.exe | head -1))
-REALEXE=$(find -L $WRF_DIR -maxdepth 3 -name real.exe | head -1)
-echo "WPS: $WPSBIN   real.exe: $REALEXE"
+# Some installs keep the executables in geogrid/, ungrib/ and metgrid/, others at the top level
+findexe() { local f; f=$(find -L $1 -maxdepth $2 -name $3 -type f | head -1); [ -n "$f" ] || { echo "$3 not found under $1" >&2; exit 1; }; echo $f; }
+GEOGRID=$(findexe $WPS_DIR 2 geogrid.exe); UNGRIB=$(findexe $WPS_DIR 2 ungrib.exe)
+METGRID=$(findexe $WPS_DIR 2 metgrid.exe); LINKGRIB=$(findexe $WPS_DIR 2 link_grib.csh)
+REALEXE=$(findexe $WRF_DIR 3 real.exe)
+echo "geogrid: $GEOGRID  ungrib: $UNGRIB  metgrid: $METGRID  real.exe: $REALEXE"
 
 fill() {  # fill() template out: substitute dates and paths
   local y0=${START:0:4} m0=${START:5:2} d0=${START:8:2} h0=${START:11:2}
@@ -44,11 +47,11 @@ ln -sf $WPS_DIR/geogrid/GEOGRID.TBL.ARW geogrid/GEOGRID.TBL 2>/dev/null || ln -s
 [ -n "${GEOGRID_TBL:-}" ] && ln -sf $GEOGRID_TBL geogrid/GEOGRID.TBL     # custom table with schnaps_topo
 ln -sf $WPS_DIR/metgrid/METGRID.TBL.ARW metgrid/METGRID.TBL 2>/dev/null || ln -sf $WPS_DIR/metgrid/METGRID.TBL metgrid/
 ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.raphrrr Vtable
-[ -f geo_em.d03.nc ] || mpirun -np 4 $WPSBIN/geogrid.exe
+[ -f geo_em.d03.nc ] || mpirun -np 4 $GEOGRID
 rm -f GRIBFILE.* HRRR:*
-$WPS_DIR/link_grib.csh $CASE/hrrr/hrrr.*.grib2
-$WPSBIN/ungrib.exe
-mpirun -np ${SLURM_NTASKS:-16} $WPSBIN/metgrid.exe
+$LINKGRIB $CASE/hrrr/hrrr.*.grib2
+$UNGRIB
+mpirun -np ${SLURM_NTASKS:-16} $METGRID
 ls met_em.d0* | head -3
 
 cd $CASE/real
