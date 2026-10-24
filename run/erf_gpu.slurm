@@ -32,4 +32,9 @@ echo "exe: $ERF_EXE"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}  $(ls /dev/nvidia[0-9]* 2>/dev/null | tr '\n' ' ')"
 # mpirun, not srun: an srun step on Borah doesn't see the job's GPU (CUDA error 100, "no CUDA-capable
 # device"), and Borah's OpenMPI has no Slurm PMI anyway. The SCHNAPS GPU jobs launch the same way.
-mpirun -np ${SLURM_NTASKS:-1} --bind-to none $ERF_EXE inputs amrex.the_arena_init_size=0 2>&1 | tee erf-$SLURM_JOB_ID.out | grep -E "STEP|Writing|error|Error" | tail -40
+rc=0
+mpirun -np ${SLURM_NTASKS:-1} --bind-to none $ERF_EXE inputs amrex.the_arena_init_size=0 > erf-$SLURM_JOB_ID.out 2>&1 || rc=$?
+grep -E "STEP|Writing" erf-$SLURM_JOB_ID.out | tail -20 || true
+echo "erf_exec exit code $rc; last lines of $ERF_CASE/erf/erf-$SLURM_JOB_ID.out:"
+tail -25 erf-$SLURM_JOB_ID.out
+exit $rc
