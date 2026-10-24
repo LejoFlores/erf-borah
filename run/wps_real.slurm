@@ -78,6 +78,7 @@ cd $CASE/real
 fill $REPO/setup/namelist.input namelist.input
 ln -sf $CASE/wps/met_em.d0* .
 for f in $WRF_DIR/run/*.TBL $WRF_DIR/run/*_DATA $WRF_DIR/run/*.formatted; do [ -e $f ] && ln -sf $f .; done
+ulimit -s unlimited          # real.exe segfaults in vertical interpolation with the default 8 MB stack
 mpirun -np ${SLURM_NTASKS:-16} $REALEXE
 tail -2 rsl.out.0000
 cp wrfinput_d01 wrfinput_d02 wrfinput_d03 wrfbdy_d01 $CASE/erf/
