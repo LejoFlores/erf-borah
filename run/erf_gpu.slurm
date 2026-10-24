@@ -24,6 +24,6 @@ sed -e "s|__START__|$START|" -e "s|__END__|$END|" $REPO/setup/inputs_drycreek > 
 cp $REPO/setup/namelist.erf .
 cp $ERF_ROOT/data/NoahmpTable.TBL $ERF_ROOT/data/rrtmgp-*.nc .
 ulimit -s unlimited          # Noah-MP's Fortran driver, as for CLM in ParFlow
-nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
+nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv || echo "nvidia-smi not permitted here; carrying on"   # informational only
 echo "exe: $EXE"
 srun $EXE inputs amrex.the_arena_init_size=0 2>&1 | tee erf-$SLURM_JOB_ID.out | grep -E "STEP|Writing|error|Error" | tail -40
