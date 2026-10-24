@@ -6,7 +6,8 @@
 #SBATCH -t 04:00:00
 #SBATCH -o erf-wps-real-%j.log
 # HRRR -> WPS (geogrid, ungrib, metgrid) -> real.exe -> wrfinput_d01..d03 + wrfbdy_d01 for ERF.
-# Uses Borah's Intel WPS 4.6.0 / WRF 4.7.1 modules unless WPS_DIR and WRF_DIR point at your own build.
+# Uses Borah's Intel WPS 4.6.0 / WRF 4.7.1 modules unless ENV_SH=/path/env.sh (your own build, e.g. from
+# idaho-summer-precip's build_wrf_wvt.sh) or WPS_DIR and WRF_DIR point at your own build.
 #   GEOG_DIR=/path/to/WPS_GEOG CASE=/bsuscratch/$USER/erf/cases/drycreek_dec2015 \
 #   START=2015-12-18_18 END=2015-12-19_06 sbatch --export=ALL run/wps_real.slurm
 # UNGRIB_EXE=/path/ungrib.exe uses another WPS build's ungrib (its intermediate files work with metgrid 4.6);
@@ -21,20 +22,32 @@ REPO=$SLURM_SUBMIT_DIR
 START=${START:-2015-12-18_18}; END=${END:-2015-12-19_06}
 GEOGRES=${GEOGRES:-default}       # e.g. "schnaps_topo+default" once the SCHNAPS terrain is in GEOG_DIR
 
-module purge
-module load slurm borah-base borah-libraries
-if [ -z "${WPS_DIR:-}" ]; then module load wps/4.6.0/openmpi/4.1.3/intel/2021.6.0; fi
-if [ -z "${WRF_DIR:-}" ]; then module load wrf/4.7.1/openmpi/4.1.3/intel/2021.6.0; fi
+if [ -n "${ENV_SH:-}" ]; then
+  # Your own WRF/WPS build: env.sh from idaho-summer-precip's build_wrf_wvt.sh sets the modules,
+  # WRF_DIR, WPS_DIR and the jasper/netCDF library path. Its `module purge` drops the slurm module,
+  # so keep that directory on PATH.
+  SLURM_BIN=$(dirname "$(command -v sbatch || echo /nonexistent/sbatch)")
+  source "$ENV_SH"
+  [ -d "$SLURM_BIN" ] && export PATH=$PATH:$SLURM_BIN
+else
+  module purge
+  module load slurm borah-base borah-libraries
+  if [ -z "${WPS_DIR:-}" ]; then module load wps/4.6.0/openmpi/4.1.3/intel/2021.6.0; fi
+  if [ -z "${WRF_DIR:-}" ]; then module load wrf/4.7.1/openmpi/4.1.3/intel/2021.6.0; fi
+fi
 [ -n "${EXTRA_MODULES:-}" ] && module load $EXTRA_MODULES       # e.g. intel/2021.6.0 for your own WPS build
 : ${WPS_DIR:?WPS module did not set WPS_DIR; set it to your WPS directory}
 : ${WRF_DIR:?set WRF_DIR to your WRF directory}
 # Some installs keep the executables in geogrid/, ungrib/ and metgrid/, others at the top level
 findexe() { local f; f=$(find -L $1 -maxdepth $2 -name $3 -type f | head -1); [ -n "$f" ] || { echo "$3 not found under $1" >&2; exit 1; }; echo $f; }
 GEOGRID=$(findexe $WPS_DIR 2 geogrid.exe); UNGRIB=${UNGRIB_EXE:-$(findexe $WPS_DIR 2 ungrib.exe)}   # Borah's module ungrib lacks libjasper.so.6/libpng15; override with your own
-METGRID=$(findexe $WPS_DIR 2 metgrid.exe); LINKGRIB=$(findexe $WPS_DIR 2 link_grib.csh)
+METGRID=$(findexe $WPS_DIR 2 metgrid.exe)
 REALEXE=$(findexe $WRF_DIR 3 real.exe)
 # A serial WPS build launched with mpirun runs N copies that all write the same file and corrupt it
-par() { local n=$1; shift; if ldd $1 | grep -q libmpi; then mpirun -np $n "$@"; else "$@"; fi; }
+par() { local n=$1; shift; if ldd $1 | grep -q libmpi; then mpirun -np $n --bind-to core "$@"; else "$@"; fi; }
+# link_grib.csh in bash: Borah has no csh on some nodes. GRIBFILE.AAA, .AAB, ...
+link_grib() { local i=0 L=ABCDEFGHIJKLMNOPQRSTUVWXYZ f
+  for f in "$@"; do ln -sf "$f" "GRIBFILE.${L:i/676%26:1}${L:i/26%26:1}${L:i%26:1}"; i=$((i + 1)); done; }
 echo "geogrid: $GEOGRID  ungrib: $UNGRIB  metgrid: $METGRID  real.exe: $REALEXE"
 
 fill() {  # fill() template out: substitute dates and paths
@@ -63,7 +76,7 @@ if [ -n "${REAL_ONLY:-}" ] && met_ok; then
 else
   if [ -z "${REAL_ONLY:-}" ] || ! ls HRRR:* >/dev/null 2>&1; then
     rm -f GRIBFILE.* HRRR:*
-    $LINKGRIB $CASE/hrrr/hrrr.*.grib2
+    link_grib $CASE/hrrr/hrrr.*.grib2
     $UNGRIB
   else
     echo "REAL_ONLY: reusing ungrib output, rerunning metgrid"
@@ -79,7 +92,7 @@ fill $REPO/setup/namelist.input namelist.input
 ln -sf $CASE/wps/met_em.d0* .
 for f in $WRF_DIR/run/*.TBL $WRF_DIR/run/*_DATA $WRF_DIR/run/*.formatted; do [ -e $f ] && ln -sf $f .; done
 ulimit -s unlimited          # real.exe segfaults in vertical interpolation with the default 8 MB stack
-mpirun -np ${SLURM_NTASKS:-16} $REALEXE
+mpirun -np ${SLURM_NTASKS:-16} --bind-to core $REALEXE
 tail -2 rsl.out.0000
 cp wrfinput_d01 wrfinput_d02 wrfinput_d03 wrfbdy_d01 $CASE/erf/
 ncdump -h $CASE/erf/wrfbdy_d01 | grep -E "QCLOUD_BXS|QICE_BXS|QRAIN_BXS" || echo "no moisture boundaries in wrfbdy_d01"
