@@ -11,7 +11,8 @@
 #   START=2015-12-18_18 END=2015-12-19_06 sbatch --export=ALL run/wps_real.slurm
 # UNGRIB_EXE=/path/ungrib.exe uses another WPS build's ungrib (its intermediate files work with metgrid 4.6);
 # EXTRA_MODULES="..." loads extra modules that build needs.
-# REAL_ONLY=1 skips ungrib and metgrid when met_em files already exist (rerun real.exe only).
+# REAL_ONLY=1 reruns only real.exe if every met_em file is readable, else reruns metgrid on the
+# existing ungrib output. METGRID_NP sets metgrid's MPI ranks (default: all job tasks).
 # Fetch HRRR first (login node is fine): python setup/hrrr_wps.py ... --out $CASE/hrrr
 set -euo pipefail
 REPO=$SLURM_SUBMIT_DIR
@@ -54,13 +55,22 @@ ln -sf $WPS_DIR/geogrid/GEOGRID.TBL.ARW geogrid/GEOGRID.TBL 2>/dev/null || ln -s
 ln -sf $WPS_DIR/metgrid/METGRID.TBL.ARW metgrid/METGRID.TBL 2>/dev/null || ln -sf $WPS_DIR/metgrid/METGRID.TBL metgrid/
 ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.raphrrr Vtable
 ncdump -k geo_em.d03.nc >/dev/null 2>&1 || par 4 $GEOGRID
-if [ -n "${REAL_ONLY:-}" ] && ncdump -k met_em.d03.${END}:00:00.nc >/dev/null 2>&1; then
+# Nests get met_em files only at the start time, so a full set is all hours of d01 plus one d02 and one d03
+met_ok() { ls met_em.d03.* >/dev/null 2>&1 || return 1
+           for f in met_em.d0*; do ncdump -k $f >/dev/null 2>&1 || { echo "unreadable: $f" >&2; return 1; }; done; }
+if [ -n "${REAL_ONLY:-}" ] && met_ok; then
   echo "REAL_ONLY: reusing the existing met_em files"
 else
-  rm -f GRIBFILE.* HRRR:*
-  $LINKGRIB $CASE/hrrr/hrrr.*.grib2
-  $UNGRIB
-  par ${SLURM_NTASKS:-16} $METGRID
+  if [ -z "${REAL_ONLY:-}" ] || ! ls HRRR:* >/dev/null 2>&1; then
+    rm -f GRIBFILE.* HRRR:*
+    $LINKGRIB $CASE/hrrr/hrrr.*.grib2
+    $UNGRIB
+  else
+    echo "REAL_ONLY: reusing ungrib output, rerunning metgrid"
+  fi
+  rm -f met_em.d0*
+  par ${METGRID_NP:-${SLURM_NTASKS:-16}} $METGRID
+  met_ok || { echo "metgrid wrote unreadable files; try METGRID_NP=1" >&2; exit 1; }
 fi
 ls met_em.d0* | head -3
 
