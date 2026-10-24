@@ -66,7 +66,10 @@ mkdir -p geogrid metgrid
 ln -sf $WPS_DIR/geogrid/GEOGRID.TBL.ARW geogrid/GEOGRID.TBL 2>/dev/null || ln -sf $WPS_DIR/geogrid/GEOGRID.TBL geogrid/
 [ -n "${GEOGRID_TBL:-}" ] && ln -sf $GEOGRID_TBL geogrid/GEOGRID.TBL     # custom table with schnaps_topo
 ln -sf $WPS_DIR/metgrid/METGRID.TBL.ARW metgrid/METGRID.TBL 2>/dev/null || ln -sf $WPS_DIR/metgrid/METGRID.TBL metgrid/
-ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.raphrrr Vtable
+# WPS's Vtable.raphrrr with PMSL read from PRMSL (our wrfnat records have PRMSL, not MSLMA). Without sea-level
+# pressure, real.exe interpolates hydrometeors with an unset order: WRF 4.3.3 stops ("pal, linear is
+# about as low as we go"); Borah's 4.7.1 likely segfaulted for the same reason.
+ln -sf $REPO/setup/Vtable.hrrr Vtable
 ncdump -k geo_em.d03.nc >/dev/null 2>&1 || par 4 $GEOGRID
 # Nests get met_em files only at the start time, so a full set is all hours of d01 plus one d02 and one d03
 met_ok() { ls met_em.d03.* >/dev/null 2>&1 || return 1
