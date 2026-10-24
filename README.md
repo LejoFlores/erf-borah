@@ -22,17 +22,17 @@ sbatch build/build_cpu.slurm
 sbatch build/build_gpu.slurm
 # 3. HRRR for WPS (login node). The same 6 h forecasts as the SCHNAPS forcing.
 #    Each hour is ~420 MB uncropped; with wgrib2 on PATH, --bbox crops it to a few MB.
-export CASE=/bsuscratch/$USER/erf/cases/drycreek_dec2015
-python setup/hrrr_wps.py --start 2015-12-18T18 --end 2015-12-19T06 --out $CASE/hrrr --bbox 42.7 -117.6 44.7 -114.8
+export ERF_CASE=/bsuscratch/$USER/erf/cases/drycreek_dec2015
+python setup/hrrr_wps.py --start 2015-12-18T18 --end 2015-12-19T06 --out $ERF_CASE/hrrr --bbox 42.7 -117.6 44.7 -114.8
 # 4. Optional but recommended: SCHNAPS's 30 m terrain for the 250 m and 50 m levels (see below).
 #    Needs numpy, netCDF4 and pyproj, e.g. the schnaps-forcing conda env (hrrr_wps.py needs only Python 3)
 # 5. WPS + real.exe
-GEOG_DIR=/path/to/WPS_GEOG START=2015-12-18_18 END=2015-12-19_06 sbatch --export=ALL run/wps_real.slurm
+ERF_GEOG_DIR=/path/to/WPS_GEOG ERF_START=2015-12-18_18 ERF_END=2015-12-19_06 sbatch --export=ALL run/wps_real.slurm
 # 6. ERF on one L40S
-START="2015-12-18 18:00:00" END="2015-12-19 06:00:00" sbatch --export=ALL run/erf_gpu.slurm
+ERF_START="2015-12-18 18:00:00" ERF_END="2015-12-19 06:00:00" sbatch --export=ALL run/erf_gpu.slurm
 ```
 
-The defaults cover the wettest 12 h, the same window as the SCHNAPS d01 smoke test. For the full storm, use `--start 2015-12-18T00 --end 2015-12-23T00` and the matching START/END values.
+The defaults cover the wettest 12 h, the same window as the SCHNAPS d01 smoke test. For the full storm, use `--start 2015-12-18T00 --end 2015-12-23T00` and the matching ERF_START/ERF_END values.
 
 ## Files
 
@@ -47,7 +47,7 @@ The defaults cover the wettest 12 h, the same window as the SCHNAPS d01 smoke te
 | `setup/schnaps_topo_to_wps.py` | Converts the SCHNAPS terrain into a WPS static dataset |
 | `setup/inputs_drycreek`, `setup/namelist.erf` | ERF inputs and Noah-MP options |
 | `run/wps_real.slurm` | Runs geogrid, ungrib, metgrid and real.exe. Uses Borah's Intel `wps/4.6.0` and `wrf/4.7.1` modules unless you set `WPS_DIR` and `WRF_DIR` to your own install |
-| `run/erf_gpu.slurm` | Runs ERF on one L40S. `RESTART=chkNNNNN` restarts from a checkpoint |
+| `run/erf_gpu.slurm` | Runs ERF on one L40S. `ERF_RESTART=chkNNNNN` restarts from a checkpoint |
 
 ## Grids
 
@@ -66,9 +66,9 @@ WPS's default terrain is about 1 km, which would make the 50 m level much smooth
 
 Running it on the domain files gave 1,272 x 968 points from 779 to 2,304 m. To use it:
 
-1. Copy the output into `GEOG_DIR`.
+1. Copy the output into `ERF_GEOG_DIR`.
 2. Add the two lines the script prints to the `HGT_M` entry of a copy of `GEOGRID.TBL`.
-3. Run WPS with `GEOGRID_TBL=<that copy> GEOGRES=schnaps_topo+default`.
+3. Run WPS with `ERF_GEOGRID_TBL=<that copy> ERF_GEOGRES=schnaps_topo+default`.
 
 Land cover still comes from WPS's MODIS classes. SCHNAPS uses ESA WorldCover, so that remains a known difference.
 

@@ -9,7 +9,7 @@ ranges from the .idx files), so each hour is one small GRIB2 file:
   surface fields from wrfnat; soil temperature and moisture from wrfprs (wrfnat has none in 2015).
 Optionally crops each file with wgrib2 -small_grib to --bbox to save space.
 
-  python hrrr_wps.py --start 2015-12-18T00 --end 2015-12-23T00 --out $CASE/hrrr \
+  python hrrr_wps.py --start 2015-12-18T00 --end 2015-12-23T00 --out $ERF_CASE/hrrr \
       [--lead 6] [--bbox 42.7 -117.6 44.7 -114.8]
 """
 import argparse, datetime as dt, os, re, shutil, subprocess, sys, urllib.request
