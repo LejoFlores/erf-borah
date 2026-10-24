@@ -9,6 +9,8 @@
 # Uses Borah's Intel WPS 4.6.0 / WRF 4.7.1 modules unless WPS_DIR and WRF_DIR point at your own build.
 #   GEOG_DIR=/path/to/WPS_GEOG CASE=/bsuscratch/$USER/erf/cases/drycreek_dec2015 \
 #   START=2015-12-18_18 END=2015-12-19_06 sbatch --export=ALL run/wps_real.slurm
+# UNGRIB_EXE=/path/ungrib.exe uses another WPS build's ungrib (its intermediate files work with metgrid 4.6);
+# EXTRA_MODULES="..." loads extra modules that build needs.
 # Fetch HRRR first (login node is fine): python setup/hrrr_wps.py ... --out $CASE/hrrr
 set -euo pipefail
 REPO=$SLURM_SUBMIT_DIR
@@ -21,11 +23,12 @@ module purge
 module load slurm borah-base borah-libraries
 if [ -z "${WPS_DIR:-}" ]; then module load wps/4.6.0/openmpi/4.1.3/intel/2021.6.0; fi
 if [ -z "${WRF_DIR:-}" ]; then module load wrf/4.7.1/openmpi/4.1.3/intel/2021.6.0; fi
+[ -n "${EXTRA_MODULES:-}" ] && module load $EXTRA_MODULES       # e.g. intel/2021.6.0 for your own WPS build
 : ${WPS_DIR:?WPS module did not set WPS_DIR; set it to your WPS directory}
 : ${WRF_DIR:?set WRF_DIR to your WRF directory}
 # Some installs keep the executables in geogrid/, ungrib/ and metgrid/, others at the top level
 findexe() { local f; f=$(find -L $1 -maxdepth $2 -name $3 -type f | head -1); [ -n "$f" ] || { echo "$3 not found under $1" >&2; exit 1; }; echo $f; }
-GEOGRID=$(findexe $WPS_DIR 2 geogrid.exe); UNGRIB=$(findexe $WPS_DIR 2 ungrib.exe)
+GEOGRID=$(findexe $WPS_DIR 2 geogrid.exe); UNGRIB=${UNGRIB_EXE:-$(findexe $WPS_DIR 2 ungrib.exe)}   # Borah's module ungrib lacks libjasper.so.6/libpng15; override with your own
 METGRID=$(findexe $WPS_DIR 2 metgrid.exe); LINKGRIB=$(findexe $WPS_DIR 2 link_grib.csh)
 REALEXE=$(findexe $WRF_DIR 3 real.exe)
 echo "geogrid: $GEOGRID  ungrib: $UNGRIB  metgrid: $METGRID  real.exe: $REALEXE"
