@@ -12,7 +12,7 @@
 # UNGRIB_EXE=/path/ungrib.exe uses another WPS build's ungrib (its intermediate files work with metgrid 4.6);
 # EXTRA_MODULES="..." loads extra modules that build needs.
 # REAL_ONLY=1 reruns only real.exe if every met_em file is readable, else reruns metgrid on the
-# existing ungrib output. METGRID_NP sets metgrid's MPI ranks (default: all job tasks).
+# existing ungrib output. METGRID_NP sets metgrid's MPI ranks (default 1: with 16, ranks clashed on the first file).
 # Fetch HRRR first (login node is fine): python setup/hrrr_wps.py ... --out $CASE/hrrr
 set -euo pipefail
 REPO=$SLURM_SUBMIT_DIR
@@ -69,8 +69,8 @@ else
     echo "REAL_ONLY: reusing ungrib output, rerunning metgrid"
   fi
   rm -f met_em.d0*
-  par ${METGRID_NP:-${SLURM_NTASKS:-16}} $METGRID
-  met_ok || { echo "metgrid wrote unreadable files; try METGRID_NP=1" >&2; exit 1; }
+  par ${METGRID_NP:-1} $METGRID     # several ranks clash opening the first met_em file on Borah
+  met_ok || { echo "metgrid wrote unreadable files" >&2; exit 1; }
 fi
 ls met_em.d0* | head -3
 
