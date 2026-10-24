@@ -6,9 +6,9 @@ static dataset, so ERF's 250 m and 50 m levels see the same terrain as SCHNAPS i
 Writes <out>/index and one big-endian int16 tile on a regular lat-lon grid of --res degrees over the
 d02 footprint, taking each point from the finest SCHNAPS domain that covers it (bilinear on that
 domain's own stereographic grid). Then add the GEOGRID.TBL entry printed at the end and run WPS with
-GEOGRES=schnaps_topo+default (run/wps_real.slurm).
+ERF_GEOGRES=schnaps_topo+default (run/wps_real.slurm).
 
-  python schnaps_topo_to_wps.py --domains <schnaps-borah>/setup/drycreek/domains --out $GEOG_DIR/schnaps_topo
+  python schnaps_topo_to_wps.py --domains <schnaps-borah>/setup/drycreek/domains --out $ERF_GEOG_DIR/schnaps_topo
 """
 import argparse, os
 import numpy as np, netCDF4 as nc
@@ -74,7 +74,7 @@ description = "SCHNAPS Dry Creek terrain (Copernicus GLO-30 via setup_schnaps.py
 missing_value = -32768
 """)
     print(f"{nx} x {ny} points, {hgt.min():.0f}-{hgt.max():.0f} m, written to {a.out}")
-    print("Add to the HGT_M entry of your GEOGRID.TBL (GEOGRID_TBL=... for run/wps_real.slurm):")
+    print("Add to the HGT_M entry of your GEOGRID.TBL (ERF_GEOGRID_TBL=... for run/wps_real.slurm):")
     print(f"  interp_option = schnaps_topo:average_gcell(4.0)+four_pt\n  rel_path = schnaps_topo:{os.path.basename(a.out.rstrip('/'))}/")
 
 
