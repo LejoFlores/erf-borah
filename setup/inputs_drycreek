@@ -20,7 +20,8 @@ erf.most.average_policy = 1
 # ---- Nests as static refinement (one-way, like the SCHNAPS nests) -------------------
 amr.max_level      = 2
 amr.ref_ratio_vect = 4 4 1  5 5 1
-amr.blocking_factor = 8
+amr.blocking_factor = 1      # the 123 x 123 x 60 domain (WRF d01) divides by no larger power of 2;
+                              # 1 also keeps the nests exactly on the wrfinput_d02/d03 footprints
 amr.max_grid_size   = 128
 erf.refinement_indicators = d02 d03
 erf.d02.in_box_lo = 50000. 46000. 0.        # 32 x 34 km at 250 m (SCHNAPS d02: 27.7 x 28.1 km)
