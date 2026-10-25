@@ -2,6 +2,7 @@
 #SBATCH -J erf-build-cpu
 #SBATCH -p bsudfq
 #SBATCH -N 1
+#SBATCH --exclusive          # whole node: shared CPU nodes ran MPI jobs 10-20x slower
 #SBATCH -n 1
 #SBATCH -c 16
 #SBATCH -t 03:00:00

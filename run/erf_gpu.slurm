@@ -13,7 +13,7 @@
 # V100 instead (faster in double precision; build first with ERF_GPU=v100 build/build_gpu.slurm):
 #   ERF_GPU=v100 ... sbatch -p gpu-v100 --export=ALL run/erf_gpu.slurm
 # 1 km + 250 m only (no 50 m level, ~15x cheaper): ERF_INPUTS=inputs_drycreek_250m
-# CPU instead: ERF_EXE=$ERF_ROOT/install-cpu/... sbatch -p bsudfq --gres=none -n 48 ... (same script)
+# CPU instead: ERF_EXE=$ERF_ROOT/install-cpu/... sbatch -p bsudfq --gres=none --exclusive -n 48 ... (same script)
 # Restart: ERF_RESTART=chk00123 (a checkpoint directory in $ERF_CASE/erf) sbatch --export=ALL run/erf_gpu.slurm
 set -euo pipefail
 # Variables are ERF_-prefixed so other models' jobs (SCHNAPS, WRF, ParFlow use CASE, START, ...) can't leak in.
