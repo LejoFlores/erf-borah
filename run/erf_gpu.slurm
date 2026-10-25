@@ -5,11 +5,14 @@
 #SBATCH -n 1
 #SBATCH -c 8
 #SBATCH --gres=gpu:1
-#SBATCH -t 12:00:00
+#SBATCH -t 48:00:00
 #SBATCH -o erf-drycreek-gpu-%j.log
 # ERF at Dry Creek on one L40S, from the files run/wps_real.slurm put in $ERF_CASE/erf.
 #   ERF_CASE=/bsuscratch/$USER/erf/cases/drycreek_dec2015 ERF_START="2015-12-18 18:00:00" ERF_END="2015-12-19 06:00:00" \
 #   sbatch --export=ALL run/erf_gpu.slurm
+# V100 instead (faster in double precision; build first with ERF_GPU=v100 build/build_gpu.slurm):
+#   ERF_GPU=v100 ... sbatch -p gpu-v100 --export=ALL run/erf_gpu.slurm
+# 1 km + 250 m only (no 50 m level, ~15x cheaper): ERF_INPUTS=inputs_drycreek_250m
 # CPU instead: ERF_EXE=$ERF_ROOT/install-cpu/... sbatch -p bsudfq --gres=none -n 48 ... (same script)
 # Restart: ERF_RESTART=chk00123 (a checkpoint directory in $ERF_CASE/erf) sbatch --export=ALL run/erf_gpu.slurm
 set -euo pipefail
@@ -20,9 +23,11 @@ REPO=$SLURM_SUBMIT_DIR
 source $REPO/build/env_gpu.sh
 : ${ERF_CASE:?set ERF_CASE}
 ERF_START=${ERF_START:-2015-12-18 18:00:00}; ERF_END=${ERF_END:-2015-12-19 06:00:00}
-ERF_EXE=${ERF_EXE:-$(find $ERF_ROOT/install-gpu $ERF_ROOT/build-gpu -name 'erf_exec' -type f 2>/dev/null | head -1)}
+G=gpu; [ "${ERF_GPU:-l40s}" != l40s ] && G=gpu-$ERF_GPU
+ERF_EXE=${ERF_EXE:-$(find $ERF_ROOT/install-$G $ERF_ROOT/build-$G -name 'erf_exec' -type f 2>/dev/null | head -1)}
+[ -n "$ERF_EXE" ] || { echo "no erf_exec in $ERF_ROOT/install-$G: build it with ERF_GPU=${ERF_GPU:-l40s} build/build_gpu.slurm"; exit 1; }
 cd $ERF_CASE/erf
-sed -e "s|__START__|$ERF_START|" -e "s|__END__|$ERF_END|" $REPO/setup/inputs_drycreek > inputs
+sed -e "s|__START__|$ERF_START|" -e "s|__END__|$ERF_END|" $REPO/setup/${ERF_INPUTS:-inputs_drycreek} > inputs
 [ -n "${ERF_RESTART:-}" ] && echo "erf.restart = $ERF_RESTART" >> inputs
 cp $REPO/setup/namelist.erf .
 cp $ERF_ROOT/data/NoahmpTable.TBL $ERF_ROOT/data/rrtmgp-*.nc .
