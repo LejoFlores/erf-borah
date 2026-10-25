@@ -2,6 +2,7 @@
 #SBATCH -J erf-wps-real
 #SBATCH -p bsudfq
 #SBATCH -N 1
+#SBATCH --exclusive          # whole node: shared CPU nodes ran MPI jobs 10-20x slower
 #SBATCH -n 16
 #SBATCH -t 04:00:00
 #SBATCH -o erf-wps-real-%j.log
