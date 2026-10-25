@@ -8,4 +8,5 @@
 #SBATCH -o erf-build-gpu-%j.log
 # Compiling for the GPU needs nvcc, not a GPU, so this runs on a CPU node.
 # Needs CUDA 12.4: by default the copy inside SCHNAPS's NVHPC 24.5 install (see env_gpu.sh).
+# Other GPUs: ERF_GPU=v100 (or a30) sbatch --export=ALL build/build_gpu.slurm -> $ERF_ROOT/install-gpu-v100
 bash $SLURM_SUBMIT_DIR/build/compile.sh gpu

@@ -1,5 +1,6 @@
 #!/bin/bash
 # Compile ERF with MPI + NetCDF + Noah-MP + RRTMGP. Usage: compile.sh cpu|gpu
+# gpu builds for ERF_GPU (l40s default, v100, a30; build/versions.sh) into build-gpu[-$ERF_GPU].
 # Run on a COMPUTE node (build_*.slurm or dev-session): Borah compute nodes have an older glibc
 # than the login node, so login-node binaries can fail there. No network needed.
 set -euo pipefail
@@ -30,10 +31,12 @@ mkdir -p $ERF_DEPS
   fi
 ) 9>$ERF_DEPS/.netcdf-fortran.lock
 
+# The L40S build keeps the original build-gpu/install-gpu names; other GPUs get a suffix
+[ "$TARGET" = gpu ] && [ "${ERF_GPU:-l40s}" != l40s ] && TARGET=gpu-$ERF_GPU
 BUILD=$ERF_ROOT/build-$TARGET
 INSTALL=$ERF_ROOT/install-$TARGET
 GPU_FLAGS=""
-if [ "$TARGET" = gpu ]; then
+if [[ "$TARGET" = gpu* ]]; then
   GPU_FLAGS="-DERF_ENABLE_CUDA=ON -DAMReX_CUDA_ARCH=$AMREX_CUDA_ARCH -DKokkos_ARCH_${KOKKOS_ARCH}=ON -DCMAKE_CUDA_HOST_COMPILER=$CUDAHOSTCXX"
 fi
 rm -rf $BUILD
