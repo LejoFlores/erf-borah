@@ -48,6 +48,7 @@ The defaults cover the wettest 12 h, the same window as the SCHNAPS d01 smoke te
 | `setup/inputs_drycreek`, `setup/namelist.erf` | ERF inputs and Noah-MP options |
 | `run/wps_real.slurm` | Runs geogrid, ungrib, metgrid and real.exe. Uses Borah's Intel `wps/4.6.0` and `wrf/4.7.1` modules unless you set `WPS_DIR` and `WRF_DIR` to your own install |
 | `run/erf_gpu.slurm` | Runs ERF on one L40S. `ERF_RESTART=chkNNNNN` restarts from a checkpoint |
+| `analysis/erf_precip.py` | After a run: surface precipitation (rain/snow/graupel accumulations, lowest-cell height) from every plotfile and level into one small NetCDF, plus the WPS grids' lat/lon. Needs only numpy and netCDF4: `python analysis/erf_precip.py $ERF_CASE/erf erf_precip.nc` |
 
 ## Grids
 
