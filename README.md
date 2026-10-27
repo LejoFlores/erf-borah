@@ -44,6 +44,7 @@ The defaults cover the wettest 12 h, the same window as the SCHNAPS d01 smoke te
 | `build/compile.sh`, `build/build_{cpu,gpu}.slurm` | Compute node: builds netcdf-fortran and then ERF (MPI, NetCDF, Noah-MP, RRTMGP). Copies the Noah-MP table and RRTMGP data to `$ERF_ROOT/data` and writes `build-info-*.txt` |
 | `setup/hrrr_wps.py` | Fetches only the HRRR GRIB records that WPS's `Vtable.raphrrr` uses (byte ranges). Native levels and surface fields come from wrfnat; soil fields come from wrfprs, because 2015 wrfnat has none |
 | `setup/namelist.wps`, `setup/namelist.input` | WPS and real.exe templates for the three nests |
+| `setup/wrfbdy_hydrometeors.py` | Fills QCLOUD/QRAIN/QICE/QSNOW/QGRAUP in `wrfbdy_d01`, which `real.exe` leaves zero |
 | `setup/schnaps_topo_to_wps.py` | Converts the SCHNAPS terrain into a WPS static dataset |
 | `setup/inputs_drycreek`, `setup/namelist.erf` | ERF inputs and Noah-MP options |
 | `run/wps_real.slurm` | Runs geogrid, ungrib, metgrid and real.exe. Uses Borah's Intel `wps/4.6.0` and `wrf/4.7.1` modules unless you set `WPS_DIR` and `WRF_DIR` to your own install |
@@ -76,9 +77,9 @@ Land cover still comes from WPS's MODIS classes. SCHNAPS uses ESA WorldCover, so
 ## Things to know
 
 - **Precipitation at the boundaries.**
-  - ERF brings HRRR cloud water and cloud ice in at the lateral boundaries (`use_wrf_bdy_qc_qi`). It does not bring in rain, snow or graupel.
-  - Precipitation therefore has to form inside the 1 km domain. Compare only inside the 250 m and 50 m levels, well away from the edge.
-  - `wps_real.slurm` prints whether `wrfbdy_d01` holds the moisture fields.
+  - ERF reads HRRR cloud water, rain, cloud ice, snow and graupel at the lateral boundaries (`use_wrf_bdy_qc_qi`; with Morrison each is nudged separately).
+  - WRF's `real.exe` (4.3.3 to 4.7.1) fills only QVAPOR in `wrfbdy_d01`; the hydrometeor boundaries stay zero even when the met_em files have them. The Dec 2015 run of 2026-10-25 had zero hydrometeors at its boundaries for this reason.
+  - `setup/wrfbdy_hydrometeors.py` fills them from the hourly `wrfinput_d01.<date>` files that `real.exe` writes with `all_ic_times`, using `wrfbdy`'s own QVAPOR coupling. `wps_real.slurm` runs it after `real.exe` and prints the largest boundary value of each species. It needs Python with netCDF4 (`ERF_PYTHON`).
 - **Turbulence.**
   - The draft uses YSU at 1 km and 250 m, and Deardorff LES at 50 m.
   - For a strict match with SCHNAPS (YSU everywhere), set `erf.pbl_type = YSU YSU YSU` and `erf.les_type = None None None`.

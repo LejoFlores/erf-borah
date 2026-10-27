@@ -1,6 +1,8 @@
 ! real.exe only (no wrf.exe run): makes wrfinput_d01..d03 and wrfbdy_d01 for ERF.
 ! Physics options here only decide which fields real.exe writes: Morrison (10) keeps QCLOUD/QICE/
-! QRAIN/QSNOW/QGRAUP, Noah-MP (4) its land fields. have_bcs_moist puts moisture into wrfbdy.
+! QRAIN/QSNOW/QGRAUP, Noah-MP (4) its land fields. have_bcs_moist puts moisture into wrfbdy, but real.exe
+! fills only QVAPOR there; all_ic_times writes wrfinput_d01.<date> at every hour so that
+! setup/wrfbdy_hydrometeors.py can fill the hydrometeor boundaries (run/wps_real.slurm does this).
 &time_control
  start_year = __Y0__, __Y0__, __Y0__,
  start_month = __M0__, __M0__, __M0__,
@@ -11,6 +13,7 @@
  end_day = __D1__, __D0__, __D0__,
  end_hour = __H1__, __H0__, __H0__,
  interval_seconds = 3600,
+ all_ic_times = .true.,
  input_from_file = .true., .true., .true.,
  history_interval = 60, 60, 60,
  frames_per_outfile = 1, 1, 1,

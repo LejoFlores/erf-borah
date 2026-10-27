@@ -101,6 +101,8 @@ for f in $WRF_DIR/run/*.TBL $WRF_DIR/run/*_DATA $WRF_DIR/run/*.formatted; do [ -
 ulimit -s unlimited          # real.exe segfaults in vertical interpolation with the default 8 MB stack
 mpirun -np ${SLURM_NTASKS:-16} --bind-to core $REALEXE
 tail -2 rsl.out.0000
+# real.exe leaves QCLOUD/QRAIN/QICE/QSNOW/QGRAUP zero in wrfbdy; fill them from the hourly wrfinput files.
+# Needs Python with netCDF4 (ERF_PYTHON, e.g. the schnaps-forcing env's python).
+${ERF_PYTHON:-python3} $REPO/setup/wrfbdy_hydrometeors.py wrfbdy_d01 'wrfinput_d01.*'
 cp wrfinput_d01 wrfinput_d02 wrfinput_d03 wrfbdy_d01 $ERF_CASE/erf/
-ncdump -h $ERF_CASE/erf/wrfbdy_d01 | grep -E "QCLOUD_BXS|QICE_BXS|QRAIN_BXS" || echo "no moisture boundaries in wrfbdy_d01"
 echo "ERF inputs ready in $ERF_CASE/erf. Next: sbatch --export=ALL run/erf_gpu.slurm"
